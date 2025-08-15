@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RabbitMQ Task Scheduler</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="/css/app.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#"><i class="fas fa-tasks me-2"></i>Task Scheduler</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#dashboard" onclick="showSection('dashboard')">
+                            <i class="fas fa-chart-bar me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#tasks" onclick="showSection('tasks')">
+                            <i class="fas fa-list me-1"></i>Tasks
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#consumers" onclick="showSection('consumers')">
+                            <i class="fas fa-server me-1"></i>Consumers
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="d-flex align-items-center">
+                <span class="badge bg-success me-2" id="connectionStatus">Connected</span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-3">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="section">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2><i class="fas fa-chart-bar me-2"></i>Dashboard</h2>
+                </div>
+            </div>
+            
+            <!-- Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-white bg-primary">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="card-title">Total Tasks</h5>
+                                    <h3 id="totalTasks">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-tasks fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-warning">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="card-title">Pending</h5>
+                                    <h3 id="pendingTasks">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-clock fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-success">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="card-title">Completed</h5>
+                                    <h3 id="completedTasks">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-check fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-white bg-danger">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h5 class="card-title">Failed</h5>
+                                    <h3 id="failedTasks">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-times fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Metrics -->
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-chart-line me-2"></i>Performance Metrics</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <h4 id="successRate" class="text-success">0%</h4>
+                                        <p class="text-muted">Success Rate</p>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center">
+                                        <h4 id="averageExecutionTime" class="text-info">0ms</h4>
+                                        <p class="text-muted">Avg Execution Time</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="fas fa-server me-2"></i>Consumer Status</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h4 id="activeConsumers" class="text-primary">0</h4>
+                                    <p class="text-muted">Active Consumers</p>
+                                </div>
+                                <div>
+                                    <button class="btn btn-outline-primary btn-sm" onclick="showConsumerManager()">
+                                        <i class="fas fa-cog me-1"></i>Manage
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Section -->
+        <div id="tasks" class="section" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2><i class="fas fa-list me-2"></i>Tasks</h2>
+                        <button class="btn btn-primary" onclick="showCreateTaskModal()">
+                            <i class="fas fa-plus me-1"></i>Create Task
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Task Filters -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <input type="text" class="form-control" id="taskSearch" placeholder="Search tasks...">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="taskStatusFilter">
+                        <option value="">All Status</option>
+                        <option value="0">Pending</option>
+                        <option value="1">Processing</option>
+                        <option value="2">Completed</option>
+                        <option value="3">Failed</option>
+                        <option value="4">Cancelled</option>
+                        <option value="5">Retrying</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary" onclick="loadTasks()">
+                        <i class="fas fa-search me-1"></i>Filter
+                    </button>
+                </div>
+            </div>
+
+            <!-- Task Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="tasksTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tasksTableBody">
+                                <!-- Tasks will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <nav aria-label="Tasks pagination">
+                        <ul class="pagination justify-content-center" id="tasksPagination">
+                            <!-- Pagination will be loaded here -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Consumers Section -->
+        <div id="consumers" class="section" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2><i class="fas fa-server me-2"></i>Consumers</h2>
+                        <div>
+                            <button class="btn btn-success" onclick="scaleConsumers('up')">
+                                <i class="fas fa-plus me-1"></i>Scale Up
+                            </button>
+                            <button class="btn btn-warning" onclick="scaleConsumers('down')">
+                                <i class="fas fa-minus me-1"></i>Scale Down
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Consumer Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Status</th>
+                                    <th>Machine</th>
+                                    <th>Started</th>
+                                    <th>Processed</th>
+                                    <th>Failed</th>
+                                    <th>Last Heartbeat</th>
+                                    <th>Current Task</th>
+                                </tr>
+                            </thead>
+                            <tbody id="consumersTableBody">
+                                <!-- Consumers will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Task Modal -->
+    <div class="modal fade" id="createTaskModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create New Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <form id="createTaskForm">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="taskName" class="form-label">Name *</label>
+                            <input type="text" class="form-control" id="taskName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="taskDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="taskDescription" rows="3"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="taskType" class="form-label">Type</label>
+                                    <select class="form-select" id="taskType">
+                                        <option value="0">Immediate</option>
+                                        <option value="1">Scheduled</option>
+                                        <option value="2">Delayed</option>
+                                        <option value="3">Recurring</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="taskPriority" class="form-label">Priority</label>
+                                    <select class="form-select" id="taskPriority">
+                                        <option value="0">Low</option>
+                                        <option value="1" selected>Normal</option>
+                                        <option value="2">High</option>
+                                        <option value="3">Critical</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="taskPayload" class="form-label">Payload (JSON)</label>
+                            <textarea class="form-control" id="taskPayload" rows="4" placeholder='{"key": "value"}'></textarea>
+                        </div>
+                        <div class="mb-3" id="scheduledAtGroup" style="display: none;">
+                            <label for="scheduledAt" class="form-label">Scheduled At</label>
+                            <input type="datetime-local" class="form-control" id="scheduledAt">
+                        </div>
+                        <div class="mb-3" id="delayTimeGroup" style="display: none;">
+                            <label for="delayTime" class="form-label">Delay (seconds)</label>
+                            <input type="number" class="form-control" id="delayTime" min="1">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Task</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
