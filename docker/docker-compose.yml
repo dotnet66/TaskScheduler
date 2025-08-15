@@ -1,0 +1,96 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: taskscheduler-rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672"   # AMQP port
+      - "15672:15672" # Management UI port
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: password123
+      RABBITMQ_DEFAULT_VHOST: taskscheduler
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - taskscheduler-network
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: taskscheduler-db
+    ports:
+      - "1433:1433"
+    environment:
+      SA_PASSWORD: Password123!
+      ACCEPT_EULA: Y
+      MSSQL_PID: Express
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - taskscheduler-network
+    healthcheck:
+      test: /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P Password123! -Q "SELECT 1"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  taskscheduler-web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.web
+    container_name: taskscheduler-web
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=database;Database=TaskScheduler;User Id=sa;Password=Password123!;TrustServerCertificate=true;
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=admin
+      - RabbitMQ__Password=password123
+      - RabbitMQ__VirtualHost=taskscheduler
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+    networks:
+      - taskscheduler-network
+    restart: unless-stopped
+
+  taskscheduler-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    container_name: taskscheduler-worker
+    environment:
+      - ConnectionStrings__DefaultConnection=Server=database;Database=TaskScheduler;User Id=sa;Password=Password123!;TrustServerCertificate=true;
+      - RabbitMQ__HostName=rabbitmq
+      - RabbitMQ__UserName=admin
+      - RabbitMQ__Password=password123
+      - RabbitMQ__VirtualHost=taskscheduler
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      database:
+        condition: service_healthy
+    networks:
+      - taskscheduler-network
+    restart: unless-stopped
+    deploy:
+      replicas: 2
+
+volumes:
+  rabbitmq_data:
+  mssql_data:
+
+networks:
+  taskscheduler-network:
+    driver: bridge
